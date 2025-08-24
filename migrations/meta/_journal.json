@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1755374029234,
+      "tag": "0000_sweet_hellfire_club",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755381206098,
+      "tag": "0001_thankful_lila_cheney",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755384846078,
+      "tag": "0002_gorgeous_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755387408256,
+      "tag": "0003_backup_before_product_exam_integration",
+      "breakpoints": true
+    }
+  ]
+}
