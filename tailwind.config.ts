@@ -174,6 +174,11 @@ export default {
       },
       screens: {
         'xs': '475px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
         '3xl': '1920px',
       },
       zIndex: {
@@ -186,12 +191,25 @@ export default {
       gridTemplateColumns: {
         'auto-fit-250': 'repeat(auto-fit, minmax(250px, 1fr))',
         'auto-fit-300': 'repeat(auto-fit, minmax(300px, 1fr))',
+        'mobile-1': 'repeat(1, minmax(0, 1fr))',
+        'mobile-2': 'repeat(2, minmax(0, 1fr))',
+        'mobile-3': 'repeat(3, minmax(0, 1fr))',
+        'mobile-4': 'repeat(4, minmax(0, 1fr))',
       },
       aspectRatio: {
         '4/3': '4 / 3',
         '3/2': '3 / 2',
         '2/3': '2 / 3',
         '9/16': '9 / 16',
+      },
+      maxWidth: {
+        'mobile': '100vw',
+        'tablet': '768px',
+        'desktop': '1024px',
+      },
+      minHeight: {
+        'screen-mobile': '100vh',
+        'screen-tablet': '100vh',
       },
     },
   },
@@ -249,6 +267,48 @@ export default {
             outline: '2px solid transparent',
             'outline-offset': '2px',
             'box-shadow': `0 0 0 2px ${theme('colors.kampus.primary')}`,
+          },
+        },
+        // Mobile responsive utilities
+        '.mobile-container': {
+          'max-width': '100%',
+          'margin': '0 auto',
+          'padding-left': '1rem',
+          'padding-right': '1rem',
+          '@screen sm': {
+            'padding-left': '1.5rem',
+            'padding-right': '1.5rem',
+          },
+          '@screen lg': {
+            'padding-left': '2rem',
+            'padding-right': '2rem',
+          },
+        },
+        '.mobile-safe-area': {
+          'padding-top': 'env(safe-area-inset-top)',
+          'padding-bottom': 'env(safe-area-inset-bottom)',
+          'padding-left': 'env(safe-area-inset-left)',
+          'padding-right': 'env(safe-area-inset-right)',
+        },
+        '.mobile-touch-target': {
+          'min-height': '44px',
+          'min-width': '44px',
+        },
+        '.mobile-text-responsive': {
+          'font-size': '0.875rem',
+          'line-height': '1.25rem',
+          '@screen md': {
+            'font-size': '1rem',
+            'line-height': '1.5rem',
+          },
+        },
+        '.mobile-spacing-responsive': {
+          'padding': '0.75rem',
+          '@screen md': {
+            'padding': '1rem',
+          },
+          '@screen lg': {
+            'padding': '1.5rem',
           },
         },
       }

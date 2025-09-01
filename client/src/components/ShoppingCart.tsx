@@ -41,7 +41,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
       if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = (error as any).message;
       }
-      
+
       toast({
         title: "Hata",
         description: errorMessage,
@@ -77,7 +77,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
         quantity: item.quantity,
         price: item.product.price,
       }));
-      
+
       await apiRequest("POST", "/api/orders", { items: orderItems });
     },
     onSuccess: () => {
@@ -103,7 +103,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number, maxStock: number) => {
     if (newQuantity < 1) return;
-    
+
     if (newQuantity > maxStock) {
       toast({
         title: "Stok Yetersiz",
@@ -112,7 +112,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
       });
       return;
     }
-    
+
     updateQuantityMutation.mutate({ itemId, quantity: newQuantity });
   };
 
@@ -136,8 +136,11 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50" data-testid="modal-cart">
-      <div className="absolute right-0 top-0 h-full w-96 bg-white shadow-xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={onClose}>
+      <div 
+        className="absolute right-0 top-0 h-full w-full sm:w-96 bg-white shadow-xl transform transition-transform"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800">
@@ -152,7 +155,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
             </button>
           </div>
         </div>
-        
+
         <div className="p-6 flex-1 overflow-y-auto max-h-96">
           {cartItems.length === 0 ? (
             <div className="text-center py-8">
@@ -163,7 +166,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
             <div className="space-y-4">
               {cartItems.map((item, index) => {
                 const imageUrl = item.product.imageUrl || productImages[index % productImages.length];
-                
+
                 return (
                   <div key={item.id} className="flex items-center space-x-3 pb-4 border-b border-gray-100" data-testid={`cart-item-${item.id}`}>
                     <img 
@@ -220,7 +223,7 @@ export default function ShoppingCart({ isOpen, onClose }: ShoppingCartProps) {
             </div>
           )}
         </div>
-        
+
         {cartItems.length > 0 && (
           <div className="p-6 border-t border-gray-200">
             <div className="flex justify-between items-center mb-4">
