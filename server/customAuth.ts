@@ -25,14 +25,15 @@ export function getSession() {
   return session({
     secret: process.env.SESSION_SECRET || "kampus-sepeti-dev-secret",
     store: sessionStore,
-    resave: false,
+    resave: true,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Production'da true
+      secure: false, // Development için false, production'da true olmalı
       sameSite: 'lax',
       maxAge: sessionTtl,
     },
+    name: 'connect.sid',
   });
 }
 

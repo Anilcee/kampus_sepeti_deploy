@@ -180,7 +180,7 @@ export default function Product() {
     );
   }
 
-  const imageUrl = product.imageUrl || productImages[Math.floor(Math.random() * productImages.length)];
+  const imageUrl = product.imageUrl || productImages[product.id.charCodeAt(0) % productImages.length];
   const discountPercentage = product.discountPercentage || 0;
   const originalPrice = parseFloat(product.originalPrice || product.price);
   const currentPrice = parseFloat(product.price);
@@ -278,14 +278,14 @@ export default function Product() {
                       {originalPrice.toLocaleString('tr-TR', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
-                      })} TL
+                      })} ₺
                     </span>
                   )}
                   <span className="text-3xl font-bold text-primary" data-testid="text-current-price">
                     {currentPrice.toLocaleString('tr-TR', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
-                    })} TL
+                    })} ₺
                   </span>
                 </div>
                 {discountPercentage > 0 && (
@@ -293,7 +293,7 @@ export default function Product() {
                     {(originalPrice - currentPrice).toLocaleString('tr-TR', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
-                    })} TL tasarruf!
+                    })} ₺ tasarruf!
                   </p>
                 )}
               </div>
@@ -385,7 +385,7 @@ export default function Product() {
                     Sepete Ekle ({(currentPrice * quantity).toLocaleString('tr-TR', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2
-                    })} TL)
+                    })} ₺)
                   </Button>
                   <Button variant="outline" className="px-6">
                     <i className="fas fa-heart mr-2"></i>
