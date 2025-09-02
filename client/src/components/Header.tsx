@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import type { User, CartItemWithProduct } from "@shared/schema";
+import type { User, CartItemWithProduct, ProductWithCategory } from "@shared/schema";
 
 interface HeaderProps {
   searchQuery: string;
@@ -13,6 +13,11 @@ interface HeaderProps {
 export default function Header({ searchQuery, onSearchChange, onCartClick, user }: HeaderProps) {
   const { data: cartItems = [] } = useQuery<CartItemWithProduct[]>({
     queryKey: ["/api/cart"],
+    enabled: !!user,
+  });
+
+  const { data: favoriteProducts = [] } = useQuery<ProductWithCategory[]>({
+    queryKey: ["/api/favorites/products"],
     enabled: !!user,
   });
 
@@ -137,10 +142,10 @@ export default function Header({ searchQuery, onSearchChange, onCartClick, user 
             </div>
             
             <div className="flex items-center space-x-1">
-              <button className="relative p-1 md:p-2 text-gray-600 hover:text-primary transition-colors">
+              <a href="/favorites" className="relative p-1 md:p-2 text-gray-600 hover:text-primary transition-colors">
                 <i className="fas fa-heart text-sm md:text-lg"></i>
-                <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-3 h-3 md:w-5 md:h-5 flex items-center justify-center text-xs">0</span>
-              </button>
+                <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-3 h-3 md:w-5 md:h-5 flex items-center justify-center text-xs">{favoriteProducts.length}</span>
+              </a>
               
               <button 
                 onClick={onCartClick}

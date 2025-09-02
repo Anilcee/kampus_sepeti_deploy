@@ -72,10 +72,10 @@ export default function SimpleHeader({ searchQuery, onSearchChange, onCartClick 
             
             {/* Cart and Wishlist */}
             <div className="flex items-center space-x-1">
-              <button className="relative p-1 md:p-2 text-gray-600 hover:text-primary transition-colors">
+              <a href="/favorites" className="relative p-1 md:p-2 text-gray-600 hover:text-primary transition-colors">
                 <i className="fas fa-heart text-sm md:text-lg"></i>
                 <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-3 h-3 md:w-5 md:h-5 flex items-center justify-center">0</span>
-              </button>
+              </a>
               
               <button 
                 onClick={() => {

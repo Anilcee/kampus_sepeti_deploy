@@ -11,6 +11,7 @@ import type { ProductWithCategory, Category } from "@shared/schema";
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("recommended");
   const [showCart, setShowCart] = useState(false);
@@ -26,11 +27,12 @@ export default function Home() {
   });
 
   const { data: products = [], isLoading: productsLoading, error } = useQuery<ProductWithCategory[]>({
-    queryKey: ["/api/products", selectedCategory, searchQuery, sortBy],
+    queryKey: ["/api/products", selectedCategory, selectedGrade, searchQuery, sortBy],
     queryFn: async ({ queryKey }) => {
-      const [, categoryId, search, sort] = queryKey;
+      const [, categoryId, grade, search, sort] = queryKey;
       const params = new URLSearchParams();
       if (categoryId) params.append("categoryId", categoryId as string);
+      if (grade) params.append("grade", grade as string);
       if (search) params.append("search", search as string);
       if (sort) params.append("sortBy", sort as string);
 
@@ -86,6 +88,14 @@ export default function Home() {
                 <span className="text-primary font-medium">
                   {categories.find(c => c.id === selectedCategory)?.name || "Kategori"}
                 </span>
+                {selectedGrade && (
+                  <>
+                    <i className="fas fa-chevron-right text-xs"></i>
+                    <span className="text-primary font-medium">
+                      {selectedGrade}
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -100,6 +110,8 @@ export default function Home() {
               categories={categories} 
               selectedCategory={selectedCategory}
               onCategoryChange={setSelectedCategory}
+              selectedGrade={selectedGrade}
+              onGradeChange={setSelectedGrade}
             />
           </div>
 

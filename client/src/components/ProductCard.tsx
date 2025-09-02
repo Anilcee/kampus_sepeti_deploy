@@ -110,32 +110,34 @@ export default function ProductCard({ product, user }: ProductCardProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 group">
-      <div className="relative">
-        <img 
-          src={getProductImage()} 
-          alt={product.name}
-          className="w-full h-32 sm:h-36 md:h-48 object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = productImages[1];
-          }}
-        />
-        {Boolean(product.discountPercentage && product.discountPercentage > 0) && (
-          <span className="absolute top-1 md:top-2 left-1 md:left-2 bg-accent text-white px-1 md:px-2 py-1 rounded-md text-xs md:text-sm font-bold">
-            %{product.discountPercentage} İndirim
-          </span>
-        )}
-        {Boolean(product.hasCoaching) && (
-          <span className="absolute top-1 md:top-2 right-1 md:right-2 bg-green-500 text-white px-1 md:px-2 py-1 rounded-md text-xs font-medium">
-            DENEME + KOÇLUK
-          </span>
-        )}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <i className="fas fa-eye text-primary" />
+      <Link href={`/product/${product.slug}`}>
+        <div className="relative cursor-pointer">
+          <img 
+            src={getProductImage()} 
+            alt={product.name}
+            className="w-full h-[28rem] sm:h-80 md:h-[28rem] object-scale-down"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = productImages[1];
+            }}
+          />
+          {Boolean(product.discountPercentage && product.discountPercentage > 0) && (
+            <span className="absolute top-2 left-2 bg-red-500 bg-opacity-60 text-white px-2 py-1 rounded-full text-xs font-bold">
+              %{product.discountPercentage} İndirim
+            </span>
+          )}
+          {Boolean(product.hasCoaching) && (
+            <span className="absolute top-2 right-2 bg-green-500 bg-opacity-60 text-white px-2 py-1 rounded-full text-xs font-medium">
+              DENEME + KOÇLUK
+            </span>
+          )}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <i className="fas fa-eye text-primary" />
+          </div>
         </div>
-      </div>
+      </Link>
 
-      <div className="p-3 md:p-4">
+      <div className="p-7 md:p-7">
         <Link href={`/product/${product.slug}`}>
           <div className="mb-2">
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -145,7 +147,7 @@ export default function ProductCard({ product, user }: ProductCardProps) {
         </Link>
 
         <Link href={`/product/${product.slug}`}>
-          <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 text-sm md:text-base cursor-pointer hover:text-primary transition-colors">
+          <h3 className="font-semibold text-gray-800 mb-3 line-clamp-2 text-sm md:text-base cursor-pointer hover:text-primary transition-colors">
             {product.name}
           </h3>
         </Link>
@@ -163,7 +165,7 @@ export default function ProductCard({ product, user }: ProductCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex text-yellow-400">
             {renderStars()}
             <span className="text-gray-600 text-xs md:text-sm ml-1">({product.reviewCount || 0})</span>

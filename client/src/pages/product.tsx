@@ -4,12 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
 import SimpleHeader from "@/components/SimpleHeader";
 import ShoppingCart from "@/components/ShoppingCart";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest } from "@/lib/queryClient";
+import type { Favorite } from "@shared/schema";
 import type { ProductWithCategory } from "@shared/schema";
 
 // Turkish educational/study images from Unsplash
@@ -21,7 +22,7 @@ const productImages = [
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
 ];
 
-export default function Product() {
+export default function Product(): JSX.Element {
   const [, params] = useRoute("/product/:slug");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -36,9 +37,43 @@ export default function Product() {
       if (!response.ok) {
         throw new Error("Product not found");
       }
-      return response.json();
+      const data = await response.json();
+      return data as ProductWithCategory;
     },
     enabled: !!params?.slug,
+  });
+
+  // Favorites API state
+  const { data: favorites = [], refetch: refetchFavorites } = useQuery<Favorite[]>({
+    queryKey: ["/api/favorites"],
+    enabled: !!user,
+  });
+
+  const isFav = (pid: string | undefined) => {
+    if (!pid) return false;
+    return favorites.some((f) => f.productId === pid);
+  };
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!product) return;
+      if (isFav(product.id)) {
+        await apiRequest("DELETE", `/api/favorites/${product.id}`);
+      } else {
+        await apiRequest("POST", "/api/favorites", { productId: product.id });
+      }
+    },
+    onSuccess: async () => {
+      await refetchFavorites();
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({ title: "Giriş Gerekli", description: "Favorilere eklemek için giriş yapın.", variant: "destructive" });
+        setTimeout(() => { window.location.href = '/login'; }, 500);
+        return;
+      }
+      toast({ title: "Hata", description: "Favori işlemi başarısız oldu.", variant: "destructive" });
+    }
   });
 
   const addToCartMutation = useMutation({
@@ -225,16 +260,16 @@ export default function Product() {
               <img 
                 src={imageUrl} 
                 alt={product.name} 
-                className="w-full h-96 object-cover rounded-lg"
+                className="w-full h-[32rem] object-scale-down rounded-lg bg-gray-50"
                 data-testid="img-product-detail"
               />
               {discountPercentage > 0 && (
-                <div className="absolute top-4 left-4 bg-accent text-white px-3 py-2 rounded-md text-lg font-bold">
+                <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-2 rounded-md text-lg font-bold z-10">
                   %{discountPercentage} İndirim
                 </div>
               )}
               {product.hasCoaching && (
-                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-2 rounded-md text-sm font-medium">
+                <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-2 rounded-md text-sm font-medium z-10">
                   DENEME + KOÇLUK
                 </div>
               )}
@@ -387,9 +422,14 @@ export default function Product() {
                       maximumFractionDigits: 2
                     })} ₺)
                   </Button>
-                  <Button variant="outline" className="px-6">
-                    <i className="fas fa-heart mr-2"></i>
-                    Favorile
+                  <Button 
+                    variant="outline" 
+                    className="px-6"
+                    onClick={() => toggleFavoriteMutation.mutate()}
+                    disabled={toggleFavoriteMutation.isPending}
+                  >
+                    <i className={`fas fa-heart mr-2 ${product && isFav(product.id) ? 'text-red-500' : ''}`}></i>
+                    {product && isFav(product.id) ? 'Favoride' : 'Favorilere Ekle'}
                   </Button>
                 </div>
               </div>

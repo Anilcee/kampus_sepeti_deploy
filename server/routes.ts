@@ -1,11 +1,14 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, hashPassword, comparePassword } from "./customAuth";
 import { z } from "zod";
-import { insertProductSchema, insertCategorySchema, loginSchema, registerSchema, updateProfileSchema, insertAddressSchema, insertExamSchema, startExamSchema, submitExamSchema, submitAnswerSchema, uploadExcelAnswerKeySchema, type LoginInput, type RegisterInput, type UpdateProfileInput } from "@shared/schema";
+import { insertProductSchema, insertCategorySchema, loginSchema, registerSchema, updateProfileSchema, insertAddressSchema, insertExamSchema, startExamSchema, submitExamSchema, submitAnswerSchema, uploadExcelAnswerKeySchema, insertFavoriteSchema } from "@shared/schema";
 import * as XLSX from 'xlsx';
 import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -25,7 +28,51 @@ const upload = multer({
   }
 });
 
+// Configure multer for image uploads
+const imageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const currentDir = new URL('.', import.meta.url).pathname;
+      const uploadDir = path.join(currentDir, '../public/uploads/products');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, `product-${uniqueSuffix}${ext}`);
+    }
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Sadece resim dosyaları kabul edilir'));
+    }
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get current directory for ESM compatibility
+  const currentDir = new URL('.', import.meta.url).pathname;
+  
+  // Serve static files
+  app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+    next();
+  }, express.static(path.join(currentDir, '../public/uploads')));
+
+  // Create uploads directory if it doesn't exist
+  const uploadsDir = path.join(currentDir, '../public/uploads/products');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
   // Auth middleware
   await setupAuth(app);
 
@@ -33,9 +80,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req, res) => {
     try {
       const user = req.session.user;
-      // Şifreyi gizle
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      if (user) {
+        // Şifreyi gizle
+        const { password, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+      } else {
+        res.status(401).json({ message: "User not found" });
+      }
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -72,6 +123,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching addresses:", error);
       res.status(500).json({ message: "Adresler yüklenirken bir hata oluştu" });
+    }
+  });
+
+  // Favorites routes
+  app.get('/api/favorites', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const favorites = await storage.getFavorites(userId);
+      res.json(favorites);
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+      res.status(500).json({ message: 'Favoriler yüklenirken bir hata oluştu' });
+    }
+  });
+
+  // favorites with product details
+  app.get('/api/favorites/products', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const products = await storage.getFavoriteProducts(userId);
+      res.json(products);
+    } catch (error) {
+      console.error('Error fetching favorite products:', error);
+      res.status(500).json({ message: 'Favori ürünler yüklenirken bir hata oluştu' });
+    }
+  });
+
+  app.post('/api/favorites', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const parsed = insertFavoriteSchema.parse({ ...req.body, userId });
+      const fav = await storage.addFavorite(parsed);
+      res.status(201).json(fav);
+    } catch (error) {
+      console.error('Error adding favorite:', error);
+      res.status(500).json({ message: 'Favori eklenirken bir hata oluştu' });
+    }
+  });
+
+  app.delete('/api/favorites/:productId', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const ok = await storage.removeFavorite(userId, req.params.productId);
+      if (!ok) return res.status(404).json({ message: 'Favori bulunamadı' });
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+      res.status(500).json({ message: 'Favori silinirken bir hata oluştu' });
     }
   });
 
@@ -264,11 +363,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/products', async (req, res) => {
     try {
       console.log("API Products request:", req.query);
-      const { categoryId, search, sortBy } = req.query;
+      const { categoryId, search, sortBy, grade } = req.query;
       const filters = {
         categoryId: categoryId as string,
         search: search as string,
         sortBy: sortBy as string,
+        grade: grade as string,
       };
       
       const products = await storage.getProducts(filters);
@@ -311,6 +411,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching product by slug:", error);
       res.status(500).json({ message: "Failed to fetch product" });
+    }
+  });
+
+  // Upload product image
+  app.post('/api/products/upload-image', isAdmin, imageUpload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Resim dosyası yüklenmemiş" });
+      }
+
+      const imageUrl = `/uploads/products/${req.file.filename}`;
+      res.json({ 
+        message: "Resim başarıyla yüklendi", 
+        imageUrl,
+        filename: req.file.filename 
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ message: "Resim yüklenirken bir hata oluştu" });
+    }
+  });
+
+  // Create uploads directory if it doesn't exist
+  app.get('/api/init-uploads', async (req, res) => {
+    try {
+      const uploadDir = path.join(__dirname, '../public/uploads/products');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      res.json({ message: "Uploads directory initialized" });
+    } catch (error) {
+      console.error("Error initializing uploads directory:", error);
+      res.status(500).json({ message: "Uploads directory oluşturulamadı" });
     }
   });
 

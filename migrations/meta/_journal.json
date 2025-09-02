@@ -29,6 +29,20 @@
       "when": 1755387408256,
       "tag": "0003_backup_before_product_exam_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1756772214839,
+      "tag": "0004_opposite_pixie",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1756826000084,
+      "tag": "0005_organic_nekra",
+      "breakpoints": true
     }
   ]
 }

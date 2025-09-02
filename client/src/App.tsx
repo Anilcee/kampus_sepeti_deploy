@@ -11,6 +11,7 @@ import Admin from "@/pages/admin";
 import Product from "@/pages/product";
 import Profile from "@/pages/profile";
 import Checkout from "@/pages/checkout";
+import FavoritesPage from "@/pages/favorites";
 import NotFound from "@/pages/not-found";
 
 // Exam System Pages
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/admin" component={Admin} />
       <Route path="/product/:slug" component={Product} />
+      <Route path="/favorites" component={FavoritesPage} />
       <Route path="/profile" component={Profile} />
       <Route path="/checkout" component={Checkout} />
       {/* Exam system routes for main domain */}

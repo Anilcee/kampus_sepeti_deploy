@@ -1,15 +1,60 @@
+import { useState, useEffect } from "react";
 import type { Category } from "@shared/schema";
 
 interface SidebarProps {
   categories: Category[];
-  selectedCategory: string | null; // Changed to allow null for "All Products"
-  onCategoryChange: (categoryId: string | null) => void; // Changed to allow null
+  selectedCategory: string | null;
+  onCategoryChange: (categoryId: string | null) => void;
+  selectedGrade: string;
+  onGradeChange: (grade: string) => void;
 }
 
-export default function Sidebar({ categories, selectedCategory, onCategoryChange }: SidebarProps) {
-  // The original logic for parent/child categories and filtering is removed as the new structure flattens the categories.
-  // This assumes the categories prop now might need different handling or the new structure is preferred.
-  // If the parent/child structure is still needed, a more complex refactor would be required.
+export default function Sidebar({ categories, selectedCategory, onCategoryChange, selectedGrade, onGradeChange }: SidebarProps) {
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
+  const [showGradeSelection, setShowGradeSelection] = useState(false);
+
+  // Sınıf seçenekleri - Veritabanındaki kategori adlarına göre
+  const gradeOptions = {
+    "İlkokul": ["1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf"],
+    "Ortaokul": ["5. Sınıf", "6. Sınıf", "7. Sınıf", "8. Sınıf"],
+    "Lise": ["9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf"]
+  };
+
+  // Kategori değiştiğinde sınıf seçimini göster/gizle
+  useEffect(() => {
+    if (selectedCategory) {
+      const category = categories.find(cat => cat.id === selectedCategory);
+      console.log("Selected category:", category); // Debug
+      console.log("Category name:", category?.name); // Debug
+      
+      // Veritabanındaki kategori adına göre kontrol
+      const isGradeCategory = category && gradeOptions[category.name as keyof typeof gradeOptions];
+      
+      console.log("Is grade category:", isGradeCategory); // Debug
+      
+      if (isGradeCategory) {
+        setSelectedCategoryName(category.name);
+        setShowGradeSelection(true);
+        onGradeChange(""); // Kategori değiştiğinde sınıf seçimini sıfırla
+        console.log("Grade selection enabled for:", category.name); // Debug
+      } else {
+        setSelectedCategoryName("");
+        setShowGradeSelection(false);
+        onGradeChange("");
+        console.log("Grade selection disabled"); // Debug
+      }
+    } else {
+      setSelectedCategoryName("");
+      setShowGradeSelection(false);
+      onGradeChange("");
+    }
+  }, [selectedCategory, categories, onGradeChange]);
+
+  // Sınıf seçildiğinde ürünleri filtrele
+  const handleGradeChange = (grade: string) => {
+    onGradeChange(grade);
+    console.log("Selected grade:", grade);
+  };
 
   return (
     <aside className="w-full lg:w-64 bg-white rounded-lg shadow-md p-3 md:p-6 h-fit lg:sticky lg:top-24">
@@ -20,11 +65,11 @@ export default function Sidebar({ categories, selectedCategory, onCategoryChange
       {/* Categories */}
       <nav className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:space-y-2 lg:gap-0">
         {/* "All Products" button */}
-        <div className="mb-2 lg:mb-0 col-span-2 lg:col-span-1"> {/* Adjusted margin and span for better spacing */}
+        <div className="mb-2 lg:mb-0 col-span-2 lg:col-span-1">
           <button
-            onClick={() => onCategoryChange(null)} // Pass null for "All Products"
+            onClick={() => onCategoryChange(null)}
             className={`block w-full text-left font-semibold px-2 md:px-3 py-2 rounded-md transition-colors text-sm md:text-base ${
-              selectedCategory === null // Check for null
+              selectedCategory === null
                 ? "text-primary bg-blue-50"
                 : "text-gray-700 hover:text-primary hover:bg-gray-50"
             }`}
@@ -38,7 +83,7 @@ export default function Sidebar({ categories, selectedCategory, onCategoryChange
 
         {/* Individual categories */}
         {categories.map((category) => (
-          <div key={category.id} className="mb-2 lg:mb-0"> {/* Adjusted margin */}
+          <div key={category.id} className="mb-2 lg:mb-0">
             <button
               onClick={() => onCategoryChange(category.id)}
               className={`block w-full text-left font-semibold px-2 md:px-3 py-2 rounded-md transition-colors text-sm md:text-base ${
@@ -48,11 +93,29 @@ export default function Sidebar({ categories, selectedCategory, onCategoryChange
               }`}
               data-testid={`button-category-${category.slug}`}
             >
-              <i className="fas fa-box mr-1 md:mr-2"></i> {/* Changed icon to be more generic for categories */}
+              <i className="fas fa-box mr-1 md:mr-2"></i>
               <span className="truncate">{category.name}</span>
             </button>
-            {/* Removed nested child category rendering as the new structure is flattened. */}
-            {/* If child categories need to be displayed, the 'categories' prop should include them and the mapping logic adjusted. */}
+            
+            {/* Sınıf seçenekleri - Ana kategorinin altında alt kategori gibi */}
+            {showGradeSelection && 
+             selectedCategory === category.id && 
+             gradeOptions[category.name as keyof typeof gradeOptions] && (
+              <div className="ml-4 mt-2 space-y-1">
+                {gradeOptions[category.name as keyof typeof gradeOptions]?.map((grade) => (
+                  <button
+                    key={grade}
+                    onClick={() => handleGradeChange(grade)}
+                    className={`block w-full text-left px-2 py-1 rounded text-xs text-gray-600 hover:text-primary hover:bg-gray-50 transition-colors ${
+                      selectedGrade === grade ? "text-primary bg-blue-50 font-medium" : ""
+                    }`}
+                  >
+                    <i className="fas fa-chevron-right mr-1 text-xs"></i>
+                    {grade}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </nav>

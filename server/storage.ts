@@ -5,6 +5,9 @@ import {
   cartItems,
   orders,
   orderItems,
+  favorites,
+  type Favorite,
+  type InsertFavorite,
   addresses,
   exams,
   examBooklets,
@@ -39,7 +42,7 @@ import {
   type ExamResult,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, like, or } from "drizzle-orm";
+import { eq, desc, asc, and, like, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations for custom authentication
@@ -58,6 +61,7 @@ export interface IStorage {
     categoryId?: string;
     search?: string;
     sortBy?: string;
+    grade?: string;
   }): Promise<ProductWithCategory[]>;
   getProduct(id: string): Promise<ProductWithCategory | undefined>;
   getProductBySlug(slug: string): Promise<ProductWithCategory | undefined>;
@@ -113,6 +117,12 @@ export interface IStorage {
   grantExamAccess(userId: string, examId: string, orderId?: string): Promise<void>;
   getUserExamAccess(userId: string): Promise<ExamWithBooklets[]>;
   hasExamAccess(userId: string, examId: string): Promise<boolean>;
+
+  // Favorites operations
+  getFavorites(userId: string): Promise<Favorite[]>;
+  addFavorite(data: InsertFavorite): Promise<Favorite>;
+  removeFavorite(userId: string, productId: string): Promise<boolean>;
+  getFavoriteProducts(userId: string): Promise<ProductWithCategory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -174,6 +184,7 @@ export class DatabaseStorage implements IStorage {
     categoryId?: string;
     search?: string;
     sortBy?: string;
+    grade?: string;
   }): Promise<ProductWithCategory[]> {
     try {
       let whereConditions = [eq(products.isActive, true)];
@@ -192,13 +203,48 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      if (filters?.grade) {
+        whereConditions.push(eq(products.grade, filters.grade));
+      }
+
       const whereClause = whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0];
 
-      const results = await db
+      let query = db
         .select()
         .from(products)
         .leftJoin(categories, eq(products.categoryId, categories.id))
         .where(whereClause);
+
+      // Apply sorting
+      if (filters?.sortBy) {
+        switch (filters.sortBy) {
+          case 'newest':
+            query = query.orderBy(desc(products.createdAt));
+            break;
+          case 'oldest':
+            query = query.orderBy(asc(products.createdAt));
+            break;
+          case 'price_asc':
+            query = query.orderBy(asc(products.price));
+            break;
+          case 'price_desc':
+            query = query.orderBy(desc(products.price));
+            break;
+          case 'popular':
+            query = query.orderBy(desc(products.soldCount || 0));
+            break;
+          case 'recommended':
+          default:
+            // Default sorting: newest first, then by name
+            query = query.orderBy(desc(products.createdAt), asc(products.name));
+            break;
+        }
+      } else {
+        // Default sorting if no sortBy specified
+        query = query.orderBy(desc(products.createdAt), asc(products.name));
+      }
+
+      const results = await query;
     
       const mappedResults = results.map((result: any) => ({
         ...result.products,
@@ -921,6 +967,46 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
     
     return !!access;
+  }
+
+  // FAVORITES
+  async getFavorites(userId: string): Promise<Favorite[]> {
+    return await db.select().from(favorites).where(eq(favorites.userId, userId));
+  }
+
+  async addFavorite(data: InsertFavorite): Promise<Favorite> {
+    // ensure uniqueness per user/product
+    const [existing] = await db
+      .select()
+      .from(favorites)
+      .where(and(eq(favorites.userId, data.userId), eq(favorites.productId, data.productId)))
+      .limit(1);
+    if (existing) return existing;
+    const [fav] = await db.insert(favorites).values(data).returning();
+    return fav;
+  }
+
+  async removeFavorite(userId: string, productId: string): Promise<boolean> {
+    const result = await db
+      .delete(favorites)
+      .where(and(eq(favorites.userId, userId), eq(favorites.productId, productId)));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getFavoriteProducts(userId: string): Promise<ProductWithCategory[]> {
+    const results = await db
+      .select()
+      .from(favorites)
+      .leftJoin(products, eq(favorites.productId, products.id))
+      .leftJoin(categories, eq(products.categoryId, categories.id))
+      .where(eq(favorites.userId, userId));
+
+    return results
+      .filter((r: any) => r.products)
+      .map((r: any) => ({
+        ...r.products,
+        category: r.categories,
+      }));
   }
 }
 

@@ -25,6 +25,8 @@ const formSchema = z.object({
     message: "Geçerli bir fiyat girin"
   }),
   categoryId: z.string().min(1, "Kategori seçimi zorunludur"),
+  gradeId: z.string().optional(), // Sınıf seçimi için
+  imageFile: z.instanceof(File).optional(),
   imageUrl: z.string().optional(),
   isActive: z.boolean().default(true),
   stock: z.number().int().min(0).default(0),
@@ -46,6 +48,41 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedExams, setSelectedExams] = useState<string[]>([]);
+  const [imagePreview, setImagePreview] = useState<string | null>(editProduct?.imageUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [showGradeSelection, setShowGradeSelection] = useState(false);
+
+  // Ana kategoriler (sınıf seçimi gerektirmeyen)
+  const mainCategories = ["LGS", "YKS"];
+  
+  // Sınıf seçimi gerektiren kategoriler - Veritabanındaki adlarla eşleşecek
+  const gradeCategories = ["İlkokul", "Ortaokul", "Lise"];
+
+  // Sınıf seçenekleri - Veritabanındaki kategori adlarına göre
+  const gradeOptions = {
+    "İlkokul": ["1. Sınıf", "2. Sınıf", "3. Sınıf", "4. Sınıf"],
+    "Ortaokul": ["5. Sınıf", "6. Sınıf", "7. Sınıf", "8. Sınıf"],
+    "Lise": ["9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf"]
+  };
+
+  // Kategori değiştiğinde sınıf seçimini göster/gizle
+  useEffect(() => {
+    if (selectedCategory) {
+      const categoryName = categories.find(cat => cat.id === selectedCategory)?.name;
+      console.log("Selected category name:", categoryName); // Debug
+      console.log("Grade categories:", gradeCategories); // Debug
+      console.log("Includes check:", categoryName && gradeCategories.includes(categoryName)); // Debug
+      
+      if (categoryName && gradeCategories.includes(categoryName)) {
+        setShowGradeSelection(true);
+        console.log("Grade selection enabled for:", categoryName); // Debug
+      } else {
+        setShowGradeSelection(false);
+        console.log("Grade selection disabled"); // Debug
+      }
+    }
+  }, [selectedCategory, categories]);
 
   // Fetch available exams
   const { data: exams = [] } = useQuery<ExamWithBooklets[]>({
@@ -67,7 +104,7 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
     enabled: !!editProduct?.id,
   });
 
-  const form = useForm<FormData>({
+    const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: editProduct?.name || "",
@@ -75,6 +112,8 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
       price: editProduct?.price?.toString() || "",
       originalPrice: editProduct?.originalPrice?.toString() || "",
       categoryId: editProduct?.categoryId || "",
+
+      imageFile: undefined,
       imageUrl: editProduct?.imageUrl || "",
       isActive: editProduct?.isActive ?? true,
       stock: editProduct?.stock || 0,
@@ -93,18 +132,40 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
         price: editProduct.price?.toString() || "",
         originalPrice: editProduct.originalPrice?.toString() || "",
         categoryId: editProduct.categoryId || "",
-        imageUrl: editProduct.imageUrl || "",
-        isActive: editProduct.isActive ?? true,
-        stock: editProduct.stock || 0,
-        hasCoaching: editProduct.hasCoaching || false,
-        discountPercentage: editProduct.discountPercentage || 0,
+        imageFile: undefined,
+        imageUrl: editProduct?.imageUrl || "",
+        isActive: editProduct?.isActive ?? true,
+        stock: editProduct?.stock || 0,
+        hasCoaching: editProduct?.hasCoaching || false,
+        discountPercentage: editProduct?.discountPercentage || 0,
         selectedExams: productExams.map(exam => exam.id), // Load product's current exams
       });
+      setImagePreview(editProduct.imageUrl || null);
     }
   }, [editProduct, form, productExams]);
 
   const saveProductMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      let imageUrl = data.imageUrl;
+
+      // Upload image if a new file is selected
+      if (data.imageFile) {
+        setIsUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append('image', data.imageFile);
+
+          const uploadResponse = await apiRequest("POST", "/api/products/upload-image", formData);
+          const uploadResult = await uploadResponse.json();
+          imageUrl = uploadResult.imageUrl;
+        } catch (error) {
+          console.error("Image upload failed:", error);
+          throw new Error("Resim yüklenirken bir hata oluştu");
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
       // Calculate discount percentage if original price is provided
       let discountPercentage = 0;
       if (data.originalPrice && parseFloat(data.originalPrice) > parseFloat(data.price)) {
@@ -133,7 +194,8 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
         price: data.price, // Keep as string since API expects it
         originalPrice: data.originalPrice || data.price, // Default to price if not provided
         categoryId: data.categoryId,
-        imageUrl: data.imageUrl || null,
+        grade: data.gradeId || null, // Sınıf bilgisini ekle
+        imageUrl: imageUrl || null,
         isActive: data.isActive,
         stock: data.stock,
         hasCoaching: data.hasCoaching,
@@ -173,6 +235,7 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
       }
       if (!editProduct) {
         form.reset();
+        setImagePreview(null);
       }
       if (onCancel && editProduct) {
         onCancel();
@@ -224,7 +287,13 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Kategori *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setSelectedCategory(value);
+                  }} 
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger data-testid="select-product-category">
                       <SelectValue placeholder="Kategori seçin" />
@@ -242,6 +311,40 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
               </FormItem>
             )}
           />
+
+          {/* Sınıf Seçimi - Sadece İLKOKUL, ORTAOKUL, LİSE seçildiğinde */}
+          {showGradeSelection && (
+            <FormField
+              control={form.control}
+              name="gradeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sınıf *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-product-grade">
+                        <SelectValue placeholder="Sınıf seçin" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {selectedCategory && (() => {
+                        const categoryName = categories.find(cat => cat.id === selectedCategory)?.name;
+                        console.log("Category name for grade options:", categoryName); // Debug
+                        console.log("Grade options keys:", Object.keys(gradeOptions)); // Debug
+                        console.log("Grade options for category:", gradeOptions[categoryName as keyof typeof gradeOptions]); // Debug
+                        return categoryName && gradeOptions[categoryName as keyof typeof gradeOptions]?.map((grade) => (
+                          <SelectItem key={grade} value={grade}>
+                            {grade}
+                          </SelectItem>
+                        ));
+                      })()}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -306,22 +409,67 @@ export default function AdminProductForm({ categories, editProduct, onCancel }: 
 
           <FormField
             control={form.control}
-            name="imageUrl"
+            name="imageFile"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Görsel URL'si</FormLabel>
+                <FormLabel>Görsel</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="https://example.com/image.jpg" 
-                    {...field}
-                    value={field.value || ""}
-                    data-testid="input-product-image"
-                  />
+                  <div className="flex items-center space-x-3">
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          field.onChange(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        } else {
+                          field.onChange(null);
+                          setImagePreview(null);
+                        }
+                      }}
+                      data-testid="input-product-image-file"
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                      className="flex items-center space-x-2"
+                    >
+                      <i className="fas fa-upload mr-2"></i>
+                      Resim Seç
+                    </Button>
+                    {field.value && (
+                      <span className="text-sm text-green-600">
+                        <i className="fas fa-check mr-1"></i>
+                        {field.value.name}
+                      </span>
+                    )}
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {imagePreview && (
+            <div className="col-span-full md:col-span-1">
+              <FormLabel>ResimÖnizleme</FormLabel>
+              <div className="border rounded-lg p-4 w-48 h-48 mx-auto">
+                {isUploading ? (
+                  <div className="text-center py-4">Yükleniyor...</div>
+                ) : (
+                  <img 
+                    src={imagePreview} 
+                    alt="Resim Önizleme" 
+                    className="w-full h-full object-contain" 
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <FormField

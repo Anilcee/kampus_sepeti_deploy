@@ -78,6 +78,7 @@ export const products = pgTable("products", {
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   discountPercentage: integer("discount_percentage").default(0),
   categoryId: varchar("category_id").notNull(),
+  grade: varchar("grade"), // Sınıf bilgisi
   imageUrl: varchar("image_url"),
   isActive: boolean("is_active").default(true),
   stock: integer("stock").default(0),
@@ -87,6 +88,14 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// User favorites table
+export const favorites = pgTable("favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: varchar("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [index("idx_favorites_user_product").on(table.userId, table.productId)]);
 
 export const cartItems = pgTable("cart_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -140,6 +149,8 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   cartItems: many(cartItems),
   orderItems: many(orderItems),
   productExams: many(productExams),
+  // reverse relation from favorites
+  favorites: many(favorites),
 }));
 
 export const cartItemsRelations = relations(cartItems, ({ one }) => ({
@@ -295,6 +306,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   createdExams: many(exams),
   examSessions: many(examSessions),
   examAccess: many(userExamAccess),
+  favorites: many(favorites),
 }));
 
 
@@ -317,6 +329,11 @@ export const insertCartItemSchema = createInsertSchema(cartItems).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertFavoriteSchema = createInsertSchema(favorites).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertOrderSchema = createInsertSchema(orders).omit({
@@ -387,6 +404,8 @@ export type Order = typeof orders.$inferSelect;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type ProductWithCategory = Product & { category: Category };
+export type Favorite = typeof favorites.$inferSelect;
+export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 
 // EXAM SYSTEM SCHEMAS AND TYPES
 export const insertExamSchema = createInsertSchema(exams).omit({
