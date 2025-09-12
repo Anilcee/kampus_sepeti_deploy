@@ -14,6 +14,7 @@ export default function Admin() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("products");
   const [editingProduct, setEditingProduct] = useState<ProductWithCategory | null>(null);
+  
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
@@ -66,8 +67,33 @@ export default function Admin() {
     );
   }
 
-  if (!isAuthenticated || (user as any)?.role !== 'admin') {
-    return null;
+  // Eğer loading devam ediyorsa veya user henüz yüklenmediyse loading göster
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Yetki kontrol ediliyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // User yüklendi ama admin değilse redirect yap
+  if ((user as any)?.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Bu sayfaya erişim yetkiniz yok.</p>
+          <button 
+            onClick={() => window.location.href = "/"} 
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Ana Sayfaya Dön
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

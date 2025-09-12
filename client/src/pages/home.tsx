@@ -10,6 +10,7 @@ import type { ProductWithCategory, Category } from "@shared/schema";
 
 export default function Home() {
   const { user, isLoading: authLoading } = useAuth();
+  
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedGrade, setSelectedGrade] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");

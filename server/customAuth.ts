@@ -29,7 +29,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true, // Development için false, production'da true olmalı
+      secure: false, // Development için false, production'da true olmalı
       sameSite: 'lax',
       maxAge: sessionTtl,
     },

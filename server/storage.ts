@@ -405,10 +405,13 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(products, eq(cartItems.productId, products.id))
       .where(eq(cartItems.userId, userId));
     
-    return results.map(result => ({
-      ...result.cart_items,
-      product: result.products!,
-    }));
+    // Filter out cart items where product is null (deleted products)
+    return results
+      .filter(result => result.products !== null)
+      .map(result => ({
+        ...result.cart_items,
+        product: result.products!,
+      }));
   }
 
   async addToCart(cartItem: InsertCartItem): Promise<CartItem> {

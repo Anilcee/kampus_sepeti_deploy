@@ -10,6 +10,7 @@ export function useAuth() {
     gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
   });
 
+
   return {
     user,
     isLoading,
