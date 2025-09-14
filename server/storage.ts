@@ -569,6 +569,9 @@ export class DatabaseStorage implements IStorage {
             quantity: orderItems.quantity,
             price: orderItems.price,
             createdAt: orderItems.createdAt,
+            // Snapshot fields
+            product_name: orderItems.productName,
+            product_image_url: orderItems.productImageUrl,
             // Product fields
             product: products
           })
@@ -577,18 +580,24 @@ export class DatabaseStorage implements IStorage {
           .where(eq(orderItems.orderId, order.id))
           .limit(3); // Sadece ilk 3 ürünü göster
 
-        // Filter out items where product is null (deleted products)
-        const formattedItems = items
-          .filter(item => item.product !== null)
-          .map(item => ({
-            id: item.id,
-            orderId: item.orderId,
-            productId: item.productId,
-            quantity: item.quantity,
+        // E-ticaret sitesi mantığı: Silinen ürünler için snapshot kullan
+        const formattedItems = items.map(item => ({
+          id: item.id,
+          orderId: item.orderId,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          createdAt: item.createdAt,
+          product: item.product || {
+            // Ürün silinmişse snapshot bilgileri kullan
+            id: item.productId,
+            name: (item as any).product_name || "Bu ürün artık mevcut değil",
+            imageUrl: (item as any).product_image_url || null,
+            description: "Bu ürün artık satışta bulunmamaktadır",
             price: item.price,
-            createdAt: item.createdAt,
-            product: item.product!
-          }));
+            isActive: false
+          }
+        }));
 
         return {
           ...order,
@@ -616,6 +625,9 @@ export class DatabaseStorage implements IStorage {
         quantity: orderItems.quantity,
         price: orderItems.price,
         createdAt: orderItems.createdAt,
+        // Snapshot fields
+        product_name: orderItems.productName,
+        product_image_url: orderItems.productImageUrl,
         // Product fields
         product: products
       })
@@ -623,18 +635,24 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, orderId));
 
-    // Filter out items where product is null (deleted products)
-    const formattedItems = items
-      .filter(item => item.product !== null)
-      .map(item => ({
-        id: item.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
+    // E-ticaret sitesi mantığı: Silinen ürünler için snapshot kullan
+    const formattedItems = items.map(item => ({
+      id: item.id,
+      orderId: item.orderId,
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+      createdAt: item.createdAt,
+      product: item.product || {
+        // Ürün silinmişse snapshot bilgileri kullan
+        id: item.productId,
+        name: (item as any).product_name || "Bu ürün artık mevcut değil",
+        imageUrl: (item as any).product_image_url || null,
+        description: "Bu ürün artık satışta bulunmamaktadır",
         price: item.price,
-        createdAt: item.createdAt,
-        product: item.product!
-      }));
+        isActive: false
+      }
+    }));
 
     return {
       order,

@@ -679,6 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user?.role === 'admin' ? undefined : userId
       );
       
+      
       res.json(orders);
     } catch (error) {
       console.error("Error fetching orders:", error);
