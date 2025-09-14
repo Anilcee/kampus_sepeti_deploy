@@ -630,16 +630,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.session.userId!;
       const { items } = req.body;
       
-      // Calculate total amount
+      // E-ticaret profesyonel yaklaşım: Sipariş anında ürün bilgilerini snapshot olarak al
       let totalAmount = 0;
-      const orderItems = items.map((item: any) => {
-        totalAmount += parseFloat(item.price) * item.quantity;
-        return {
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-        };
-      });
+      const orderItems = await Promise.all(
+        items.map(async (item: any) => {
+          // Her ürün için güncel bilgileri al (snapshot için)
+          const product = await storage.getProduct(item.productId);
+          if (!product) {
+            throw new Error(`Product ${item.productId} not found`);
+          }
+          
+          totalAmount += parseFloat(item.price) * item.quantity;
+          
+          // Trendyol/Hepsiburada gibi: Sipariş anındaki tüm ürün bilgilerini kaydet
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            // SNAPSHOT: Ürün silinse bile bu bilgiler kalacak
+            productName: product.name,
+            productImageUrl: product.imageUrl,
+            productSlug: product.slug,
+            productDescription: product.description,
+          };
+        })
+      );
       
       const order = await storage.createOrder(
         {

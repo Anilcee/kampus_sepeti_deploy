@@ -43,6 +43,13 @@
       "when": 1756826000084,
       "tag": "0005_organic_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1757835611420,
+      "tag": "0006_useful_quasimodo",
+      "breakpoints": true
     }
   ]
 }

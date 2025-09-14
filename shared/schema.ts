@@ -121,8 +121,11 @@ export const orderItems = pgTable("order_items", {
   productId: varchar("product_id").notNull(),
   quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  productName: varchar("product_name"), // Snapshot: sipariş anındaki ürün adı
-  productImageUrl: varchar("product_image_url"), // Snapshot: sipariş anındaki ürün görseli
+  // E-ticaret snapshot sistemi - sipariş anındaki ürün bilgileri
+  productName: varchar("product_name").notNull(), // Ürün adı snapshot
+  productImageUrl: varchar("product_image_url"), // Ürün görseli snapshot
+  productSlug: varchar("product_slug"), // Ürün slug snapshot
+  productDescription: text("product_description"), // Ürün açıklaması snapshot
   createdAt: timestamp("created_at").defaultNow(),
 });
 

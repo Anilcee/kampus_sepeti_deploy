@@ -569,10 +569,12 @@ export class DatabaseStorage implements IStorage {
             quantity: orderItems.quantity,
             price: orderItems.price,
             createdAt: orderItems.createdAt,
-            // Snapshot fields
+            // E-ticaret snapshot fields
             product_name: orderItems.productName,
             product_image_url: orderItems.productImageUrl,
-            // Product fields
+            product_slug: orderItems.productSlug,
+            product_description: orderItems.productDescription,
+            // Product fields (mevcut ürün bilgileri)
             product: products
           })
           .from(orderItems)
@@ -580,7 +582,7 @@ export class DatabaseStorage implements IStorage {
           .where(eq(orderItems.orderId, order.id))
           .limit(3); // Sadece ilk 3 ürünü göster
 
-        // E-ticaret sitesi mantığı: Silinen ürünler için snapshot kullan
+        // Profesyonel E-ticaret Yaklaşımı: Her zaman snapshot kullan
         const formattedItems = items.map(item => ({
           id: item.id,
           orderId: item.orderId,
@@ -588,14 +590,17 @@ export class DatabaseStorage implements IStorage {
           quantity: item.quantity,
           price: item.price,
           createdAt: item.createdAt,
-          product: item.product || {
-            // Ürün silinmişse snapshot bilgileri kullan
+          product: {
+            // Önce snapshot'tan al, yoksa mevcut üründen al
             id: item.productId,
-            name: (item as any).product_name || "Bu ürün artık mevcut değil",
-            imageUrl: (item as any).product_image_url || null,
-            description: "Bu ürün artık satışta bulunmamaktadır",
+            name: (item as any).product_name || item.product?.name || "Ürün Bilgisi Bulunamadı",
+            imageUrl: (item as any).product_image_url || item.product?.imageUrl || "/placeholder-product.jpg",
+            slug: (item as any).product_slug || item.product?.slug || "",
+            description: (item as any).product_description || item.product?.description || "Açıklama mevcut değil",
             price: item.price,
-            isActive: false
+            isActive: item.product?.isActive || false,
+            // Ürün silinmişse snapshot'tan gelen bilgiler kullanılır
+            categoryId: item.product?.categoryId || null
           }
         }));
 
@@ -625,17 +630,19 @@ export class DatabaseStorage implements IStorage {
         quantity: orderItems.quantity,
         price: orderItems.price,
         createdAt: orderItems.createdAt,
-        // Snapshot fields
+        // E-ticaret snapshot fields
         product_name: orderItems.productName,
         product_image_url: orderItems.productImageUrl,
-        // Product fields
+        product_slug: orderItems.productSlug,
+        product_description: orderItems.productDescription,
+        // Product fields (mevcut ürün bilgileri)
         product: products
       })
       .from(orderItems)
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, orderId));
 
-    // E-ticaret sitesi mantığı: Silinen ürünler için snapshot kullan
+    // Profesyonel E-ticaret Yaklaşımı: Her zaman snapshot kullan
     const formattedItems = items.map(item => ({
       id: item.id,
       orderId: item.orderId,
@@ -643,14 +650,16 @@ export class DatabaseStorage implements IStorage {
       quantity: item.quantity,
       price: item.price,
       createdAt: item.createdAt,
-      product: item.product || {
-        // Ürün silinmişse snapshot bilgileri kullan
+      product: {
+        // Önce snapshot'tan al, yoksa mevcut üründen al
         id: item.productId,
-        name: (item as any).product_name || "Bu ürün artık mevcut değil",
-        imageUrl: (item as any).product_image_url || null,
-        description: "Bu ürün artık satışta bulunmamaktadır",
+        name: (item as any).product_name || item.product?.name || "Ürün Bilgisi Bulunamadı",
+        imageUrl: (item as any).product_image_url || item.product?.imageUrl || "/placeholder-product.jpg",
+        slug: (item as any).product_slug || item.product?.slug || "",
+        description: (item as any).product_description || item.product?.description || "Açıklama mevcut değil",
         price: item.price,
-        isActive: false
+        isActive: item.product?.isActive || false,
+        categoryId: item.product?.categoryId || null
       }
     }));
 
