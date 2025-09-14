@@ -594,7 +594,7 @@ export class DatabaseStorage implements IStorage {
             // Önce snapshot'tan al, yoksa mevcut üründen al
             id: item.productId,
             name: (item as any).product_name || item.product?.name || "Ürün Bilgisi Bulunamadı",
-            imageUrl: (item as any).product_image_url || item.product?.imageUrl || "/placeholder-product.jpg",
+            imageUrl: (item as any).product_image_url || item.product?.imageUrl,
             slug: (item as any).product_slug || item.product?.slug || "",
             description: (item as any).product_description || item.product?.description || "Açıklama mevcut değil",
             price: item.price,
@@ -654,7 +654,7 @@ export class DatabaseStorage implements IStorage {
         // Önce snapshot'tan al, yoksa mevcut üründen al
         id: item.productId,
         name: (item as any).product_name || item.product?.name || "Ürün Bilgisi Bulunamadı",
-        imageUrl: (item as any).product_image_url || item.product?.imageUrl || "/placeholder-product.jpg",
+        imageUrl: (item as any).product_image_url || item.product?.imageUrl,
         slug: (item as any).product_slug || item.product?.slug || "",
         description: (item as any).product_description || item.product?.description || "Açıklama mevcut değil",
         price: item.price,
