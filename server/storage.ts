@@ -577,15 +577,18 @@ export class DatabaseStorage implements IStorage {
           .where(eq(orderItems.orderId, order.id))
           .limit(3); // Sadece ilk 3 ürünü göster
 
-        const formattedItems = items.map(item => ({
-          id: item.id,
-          orderId: item.orderId,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          createdAt: item.createdAt,
-          product: item.product!
-        }));
+        // Filter out items where product is null (deleted products)
+        const formattedItems = items
+          .filter(item => item.product !== null)
+          .map(item => ({
+            id: item.id,
+            orderId: item.orderId,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            createdAt: item.createdAt,
+            product: item.product!
+          }));
 
         return {
           ...order,
@@ -620,15 +623,18 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(products, eq(orderItems.productId, products.id))
       .where(eq(orderItems.orderId, orderId));
 
-    const formattedItems = items.map(item => ({
-      id: item.id,
-      orderId: item.orderId,
-      productId: item.productId,
-      quantity: item.quantity,
-      price: item.price,
-      createdAt: item.createdAt,
-      product: item.product!
-    }));
+    // Filter out items where product is null (deleted products)
+    const formattedItems = items
+      .filter(item => item.product !== null)
+      .map(item => ({
+        id: item.id,
+        orderId: item.orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        createdAt: item.createdAt,
+        product: item.product!
+      }));
 
     return {
       order,
